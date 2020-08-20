@@ -1,6 +1,6 @@
 use futures_timer::Delay;
 use once_cell::sync::Lazy;
-use shared_core::{Driver, Result, ThreadPoolBuilder};
+use shared_core::{Driver, Result};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -13,13 +13,9 @@ fn java_init_thread() -> Result<()> {
 
 pub fn do_work_from_jni() -> Result<()> {
     //TODO: take a JNIEnv and Java object as parameters
-    let mut builder = ThreadPoolBuilder::new();
-    let pool = builder
-        .after_start(move |_| {
-            java_init_thread().expect("Failed to init JNI thread");
-        })
-        .create()?;
-    let driver = Driver::new(pool);
+    let driver = Driver::new(move || {
+        java_init_thread().expect("Failed to init JNI thread");
+    })?;
     driver.do_some_work(async {
         // Pretend we're waiting for some real async operation.
         Delay::new(Duration::from_secs(1)).await
